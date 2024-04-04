@@ -1,0 +1,224 @@
+
+
+
+
+Network Working Group                                      T. Przygienda
+Internet-Draft                                          Juniper Networks
+Intended status: Experimental                               4 April 2024
+Expires: 6 October 2024
+
+
+                           Unmasked BIER Mode
+                       draft-lsr-unmasked-bier-00
+
+Abstract
+
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 6 October 2024.
+
+Copyright Notice
+
+   Copyright (c) 2024 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+
+
+
+
+
+
+
+
+Przygienda               Expires 6 October 2024                 [Page 1]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Signalling  . . . . . . . . . . . . . . . . . . . . . . . . .   2
+   3.  Security Considerations . . . . . . . . . . . . . . . . . . .   2
+   4.  IANA Section  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   5.  Contributors  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   6.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   3
+     6.1.  Normative References  . . . . . . . . . . . . . . . . . .   3
+     6.2.  Informative References  . . . . . . . . . . . . . . . . .   3
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   4
+
+1.  Introduction
+
+2.  Signalling
+
+   The only signalling necessary is a Sub-TLV of the IS-IS Router
+   Capability TLV-242 that is defined in [RFC7981] with the following
+   format.  The Sub-TLV MUST be advertised by a node that is actively
+   running any prunner except zero-prunner and the absence of this Sub-
+   TLV signifies a node being a 'zero-prunner'.
+
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |     Type      |     Length    |        Algorithm              |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+      Type: TBD1
+
+      Length: 2
+
+      Algorithm: a numeric identifier in the range 0 .. 2^16-1 that
+      identifies the algorithm used to calculate CDS (flooding topology)
+      of the component from the IGP Flooding Prunner Registry as
+      assigned per Section 4.
+
+3.  Security Considerations
+
+
+4.  IANA Section
+
+   IANA is requested to set up a registry called "IGP Flooding Prunner
+   Type" under the existing "Interior Gateway Protocol (IGP) Parameters"
+   IANA registry.
+
+   Values in this registry come from the range 0 .. 2^16-1.
+
+
+
+
+Przygienda               Expires 6 October 2024                 [Page 2]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
+
+   The following values are defined:
+
+      0-255: Reserved with values aligned with algorithm numbers in
+      _draft-dynamic-flooding_.
+
+      256: MANET Based Algorithm described in this document.
+
+      257 .. 32767: Standardized distributed algorithms assigned in the
+      registry.
+
+      32767 ..  65534: Private algorithms.  Individual values are to be
+      assigned according to the "Private Use" policy defined in
+      [RFC8126].
+
+      65535: Reserved
+
+5.  Contributors
+
+   TBD
+
+6.  References
+
+6.1.  Normative References
+
+   [RFC7981]  Ginsberg, L., Previdi, S., and M. Chen, "IS-IS Extensions
+              for Advertising Router Information", RFC 7981,
+              DOI 10.17487/RFC7981, October 2016,
+              <https://www.rfc-editor.org/info/rfc7981>.
+
+6.2.  Informative References
+
+   [I-D.ietf-isis-segment-routing-extensions]
+              Previdi, S., Ginsberg, L., Filsfils, C., Bashandy, A.,
+              Gredler, H., and B. Decraene, "IS-IS Extensions for
+              Segment Routing", Work in Progress, Internet-Draft, draft-
+              ietf-isis-segment-routing-extensions-25, 19 May 2019,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-isis-
+              segment-routing-extensions-25>.
+
+   [RFC5304]  Li, T. and R. Atkinson, "IS-IS Cryptographic
+              Authentication", RFC 5304, DOI 10.17487/RFC5304, October
+              2008, <https://www.rfc-editor.org/info/rfc5304>.
+
+   [RFC5449]  Baccelli, E., Jacquet, P., Nguyen, D., and T. Clausen,
+              "OSPF Multipoint Relay (MPR) Extension for Ad Hoc
+              Networks", RFC 5449, DOI 10.17487/RFC5449, February 2009,
+              <https://www.rfc-editor.org/info/rfc5449>.
+
+
+
+
+Przygienda               Expires 6 October 2024                 [Page 3]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
+
+   [RFC5614]  Ogier, R. and P. Spagnolo, "Mobile Ad Hoc Network (MANET)
+              Extension of OSPF Using Connected Dominating Set (CDS)
+              Flooding", RFC 5614, DOI 10.17487/RFC5614, August 2009,
+              <https://www.rfc-editor.org/info/rfc5614>.
+
+   [RFC8126]  Cotton, M., Leiba, B., and T. Narten, "Guidelines for
+              Writing an IANA Considerations Section in RFCs", BCP 26,
+              RFC 8126, DOI 10.17487/RFC8126, June 2017,
+              <https://www.rfc-editor.org/info/rfc8126>.
+
+Author's Address
+
+   Tony Przygienda
+   Juniper Networks
+   Email: prz@juniper.net
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Przygienda               Expires 6 October 2024                 [Page 4]
