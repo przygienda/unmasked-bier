@@ -5,13 +5,13 @@
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
         <!ENTITY RFC2119 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml">
         <!ENTITY RFC2629 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2629.xml">
+        <!ENTITY RFC3032 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.3032.xml">
         <!ENTITY RFC3277 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.3277.xml">
         <!ENTITY RFC3719 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.3719.xml">
         <!ENTITY RFC4271 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.4271.xml">
         <!ENTITY RFC5120 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5120.xml">
         <!ENTITY RFC5301 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5301.xml">
         <!ENTITY RFC5303 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5303.xml">
-        <!ENTITY RFC5304 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5304.xml">
         <!ENTITY RFC5305 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5305.xml">
         <!ENTITY RFC5308 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5308.xml">
         <!ENTITY RFC5309 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5309.xml">
@@ -25,9 +25,9 @@
         <!ENTITY RFC6232 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.6232.xml">
         <!ENTITY RFC7356 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.7356.xml">
         <!ENTITY RFC7921 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.7921.xml">
-        <!ENTITY RFC7981 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.7981.xml">
         <!ENTITY RFC8174 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.8174.xml">
         <!ENTITY RFC8126 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.8126.xml">
+        <!ENTITY RFC8296 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.8296.xml">
         ]>
 
 <?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
@@ -38,7 +38,7 @@
 <?rfc sortrefs="yes" ?>
 <?rfc compact="yes" ?>
 <?rfc subcompact="no" ?>
-<rfc category="exp" docName="draft-lsr-unmasked-bier-00" ipr="trust200902">
+<rfc category="exp" docName="draft-bier-unmasked-bier-00" ipr="trust200902">
 
     <!-- ***** FRONT MATTER ***** -->
 
@@ -53,10 +53,35 @@
             </address>
         </author>
 
+        <author initials='J.' surname='Zhang' fullname='Jeffrey (Zhaohui) Zhang'>
+            <organization>Juniper Networks</organization>
+            <address>
+                <email>zzhang@juniper.net</email>
+            </address>
+    </author>
+
+        <author initials='H.' surname='Bidgoli' fullname='Hooman Bigdoli'>
+            <organization>Nokia</organization>
+            <address>
+                <email>hooman.bigdoli@nokia.com</email>
+            </address>
+        </author>
+
+        <author initials='I.' surname='Wijnands' fullname='IJsbrand Wijnands'>
+            <organization>Individual</organization>
+            <address>
+                <email>ice@braindump.be</email>
+            </address>
+        </author>
+
+
         <date/>
 
         <abstract>
             <t>
+                The document introduces a new mode of interpretation of the bitmask field in the BIER encoding, called
+                unmasked BIER, that solves the problem of BIER originator targeting receivers across many different sets and hence,
+                in worst case, degrading into ingress replication.
             </t>
 
 
@@ -67,74 +92,138 @@
     <middle>
 
         <section title="Introduction">
+
+            <t>
+
+                BIER technology <xref target="RFC8296"/> in its standard form may suffer from a degradation towards
+                ingress replication in a scenario where the total number of involved BFRs
+                is very large but most packets address
+                varying combination of relatively few receivers spread across different sets.
+                </t>
+            <t>
+                More explicitly, BIER carries in its standard form a bitmask of successive BFR receivers represented as bits in a set
+                and thus on large numbers of involved BFRs and few receivers w/o customized allocation of BFR IDs
+                or application awareness of the address locality
+                each receiver on a packet may be found in a different set in most extreme cases.
+                Obviously, when receivers are in different sets, multiple packets must be sent,
+                one per involved set.
+                Such a scenario can become common in large distributed computation environments
+                based on consensus building algorithms (or building closures by successive folding of results),
+                e.g. multi-CPU HPC or data centers and RAID storage where storing data while addressing large
+                number of always changing stripes can lead to this kind of anomaly.
+            </t>
         </section>
 
-            <section title="Signalling" anchor="tlvs">
+        <section title="Unmasked BIER">
+            <t>
+               To deal with the problem of small number of receivers spread across many sets we introduce
+                into BIER a special interpretation of the bitmask field called unmasked BIER or U-BIER for brevity's sake.
+                U-BIER bitmask is interpreted as sequence of BFR-IDs that can belong to different sets and
+                be interspersed with "holes" consisting of illegal BFR-IDs to increase hardware processing efficiency.
+            </t>
+            <t>
+                Support for processing of unmasked BIER is indicated by signalling special label or its equivalent
+                analogous
+                to BIER Encapsulation signalling. Based on this info the upstream node
+                can decide on a hop-by-hop basis whether
+                it compresses the same BIER frames it received for different sets (how the recognition of
+                same frames is performed is outside the scope of this document) into a single U-BIER frame or
+                propagates a U-BIER frame with according changes, i.e. only providing the BFR-IDs for which
+                the receiver is responsible. The removal of BFR IDs from the packet before forwarding it
+                is completely analogous to the normal bitmask processing in a sense but here
+                spanning possibly many sets in the lookup engine. In case the downstream receiver does not
+                support U-BIER the frame needs to be replicated into according standard BIER frames with usual
+                bitmask interpretation.
+            </t>
+        </section>
+
+        <section title="U-BIER Interpretation of the bitmask field">
+            <t>
+                The bitmask field MUST be interpreted in U-BIER mode as sequence of BFR-IDs (as an example, within 256 bits
+                maximum 16 receivers can be encoded) whereas illegal BFR-IDs are allowed in any position and MUST be
+                ignored. Duplicates are also allowed and MUST be treated as a single occurrence. No guarantees are
+                provided in terms of sorting of the BFR-IDs in U-BIER.
+            </t>
+
+        </section>
+
+            <section title="Signalling for MPLS in ISIS via U-Mode BIER MPLS Encapsulation Sub-sub-TLV" anchor="tlvs">
                 <t>
-                    The only signalling necessary is a Sub-TLV of the IS-IS Router Capability TLV-242 that is defined in
-                    <xref target="RFC7981"/> with the following format. The Sub-TLV MUST be advertised by a node
-                    that is actively running any prunner except zero-prunner and the absence of this Sub-TLV
-                    signifies a node being a 'zero-prunner'.
+                   The signalling follows the BIER MPLS Encapsulation Sub-sub-TLV, i.e. it is &lt;MT,SD,BML&gt; specific
+                    but obviously does not include the concept of a set.
                 </t>
 
 
                 <figure align="left">
                     <artwork align="left"><![CDATA[
-   0                   1                   2                   3
-   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |     Type      |     Length    |        Algorithm              |
-  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|    Type       |   Length      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   Reserved    |BS Len |                    Label              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| ...
   ]]></artwork>
                 </figure>
 
                 <t><list>
                     <t>Type: TBD1</t>
 
-                    <t>Length: 2</t>
+                    <t>Length: 4 * of U-Mode BitString Length specific labels.</t>
 
+                    <t>Reserved: MUST be 0 on send and ignored on reception.</t>
 
-                    <t>Algorithm: a numeric identifier in the range 0 .. 2^16-1 that
-                        identifies the algorithm used to calculate CDS (flooding
-                        topology) of the component from the IGP Flooding Prunner Registry
-                        as assigned per <xref target="IGP_IANA"/>.</t>
+                    <t>Label: Frames received  on this label interpret the BitMask as U-BIER.</t>
                 </list></t>
+
+                <t>
+                In case multiple values are advertised for same bitstring length, the sub-sub-TLV MUST be ignored.
+                    In case same label value is advertised for different bitstring lengths, the sub-sub-TLV MUST be ignored.
+                </t>
+                <t>
+                Label values MUST NOT match any of the reserved values defined in
+               <xref target="RFC3032"/>.
+                </t>
 
             </section>
 
 
-        <section title="Security Considerations" toc="default">
+        <section title="Further Considerations" toc="default">
+
+            <t>U-BIER can be deployed within existing BIER node by node, either as addition or the only mode supported.
+                Observe that in an environment where only some nodes support U-BIER those may have to disaggregate
+                U-BIER into normal BIER and hence fall back to average replication. In a network where some nodes
+                support only U-BIER normal BIER nodes may consider them not supporting BIER at all or may perform
+                translation from normal BIER into U-BIER frames, however, it must be expected that they
+                will use a single frame and basically send U-BIER with the BFR IDs of a single set only, not
+                rendering any gains unless a mechanism is in place the same frame is detected sent on multiple
+                sets and coalesced into a single U-BIER frame. This can be achieved by many mechanisms out the scope
+                of this draft, amongst them a shim after the BIER encapsulation <xref target="I-D.zzhang-bier-extension-headers"/>
+
+                in way similar to inband
+                telemetry or fragmentation support.
+            </t>
 
             <t>
+                Mixing U-BIER and normal BIER within a subdomain can lead to difficulties of decoding the
+                according packets in the middle in terms of destinations targeted if the involved parties in the
+                middle do not possess the correct binding information. An obvious method to deal with
+                this problem is to deploy U-BIER specifically in its own sub-domain where the interpretation of the
+                bitmask is unambiguous.
+            </t>
+
+        </section>
+
+        <section title="Security Considerations" toc="default">
+
+            <t>TBD
             </t>
 
         </section> <!-- end of security considerations -->
 
         <section anchor="IGP_IANA" title="IANA Section">
-            <t>IANA is requested to set up a registry called "IGP Flooding Prunner Type" under the existing "Interior Gateway
-                Protocol (IGP) Parameters" IANA registry.</t>
-
-            <t>Values in this registry come from the range 0 .. 2^16-1.</t>
-
-            <t>
-                The following values are defined: <list>
-
-                <t>
-                    0-255: Reserved with values aligned with algorithm numbers in <em>draft-dynamic-flooding</em>.
-                </t>
-                <t>
-                    256: MANET Based Algorithm described in this document.
-                </t>
-                <t>
-                    257 .. 32767: Standardized distributed algorithms assigned in the registry.
-                </t>
-
-                <t>32767 ..  65534: Private algorithms. Individual
-                    values are to be assigned according to the "Private Use"
-                    policy defined in <xref target="RFC8126"/>.</t>
-
-                <t>65535: Reserved</t>
-            </list>
+            <t>TBD
             </t>
         </section>
 
@@ -145,13 +234,22 @@
 
         </section> <!-- end of contributors -->
 
+        <!-- 2 -->
+        <section title="Acknowledgement" toc="default">
+
+            <t>Michael Menth and Toerless Eckert mentioned the problem and approaches to address it in open forums
+            for the first time.</t>
+
+        </section> <!-- end of contributors -->
+
     </middle>
 
     <back>
 
         <references title="Normative References">
 
-            &RFC7981;
+            &RFC3032;
+            &RFC8296;
 
 
 
@@ -160,12 +258,8 @@
         <references title="Informative References">
 
 
-            &RFC5304;
-            &RFC5449;
-            &RFC5614;
-            &RFC8126;
 
-            <?rfc include="reference.I-D.ietf-isis-segment-routing-extensions.xml"?>
+            <?rfc include="reference.I-D.zzhang-bier-extension-headers.xml"?>
 
         </references> <!-- end of informative references -->
 

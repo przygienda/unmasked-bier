@@ -3,16 +3,24 @@
 
 
 Network Working Group                                      T. Przygienda
-Internet-Draft                                          Juniper Networks
-Intended status: Experimental                               4 April 2024
-Expires: 6 October 2024
+Internet-Draft                                                  J. Zhang
+Intended status: Experimental                           Juniper Networks
+Expires: 29 October 2024                                      H. Bidgoli
+                                                                   Nokia
+                                                             I. Wijnands
+                                                              Individual
+                                                           27 April 2024
 
 
                            Unmasked BIER Mode
-                       draft-lsr-unmasked-bier-00
+                      draft-bier-unmasked-bier-00
 
 Abstract
 
+   The document introduces a new mode of interpretation of the bitmask
+   field in the BIER encoding, called unmasked BIER, that solves the
+   problem of BIER originator targeting receivers across many different
+   sets and hence, in worst case, degrading into ingress replication.
 
 Status of This Memo
 
@@ -29,12 +37,26 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 October 2024.
+   This Internet-Draft will expire on 29 October 2024.
 
 Copyright Notice
 
    Copyright (c) 2024 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
+
+
+
+
+
+
+
+
+
+
+Przygienda, et al.       Expires 29 October 2024                [Page 1]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
 
    This document is subject to BCP 78 and the IETF Trust's Legal
    Provisions Relating to IETF Documents (https://trustee.ietf.org/
@@ -45,148 +67,224 @@ Copyright Notice
    described in Section 4.e of the Trust Legal Provisions and are
    provided without warranty as described in the Revised BSD License.
 
-
-
-
-
-
-
-
-
-Przygienda               Expires 6 October 2024                 [Page 1]
-
-Internet-Draft             Unmasked BIER Mode                 April 2024
-
-
 Table of Contents
 
    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
-   2.  Signalling  . . . . . . . . . . . . . . . . . . . . . . . . .   2
-   3.  Security Considerations . . . . . . . . . . . . . . . . . . .   2
-   4.  IANA Section  . . . . . . . . . . . . . . . . . . . . . . . .   2
-   5.  Contributors  . . . . . . . . . . . . . . . . . . . . . . . .   3
-   6.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   3
-     6.1.  Normative References  . . . . . . . . . . . . . . . . . .   3
-     6.2.  Informative References  . . . . . . . . . . . . . . . . .   3
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   4
+   2.  Unmasked BIER . . . . . . . . . . . . . . . . . . . . . . . .   3
+   3.  U-BIER Interpretation of the bitmask field  . . . . . . . . .   3
+   4.  Signalling for MPLS in ISIS via U-Mode BIER MPLS Encapsulation
+           Sub-sub-TLV . . . . . . . . . . . . . . . . . . . . . . .   3
+   5.  Further Considerations  . . . . . . . . . . . . . . . . . . .   4
+   6.  Security Considerations . . . . . . . . . . . . . . . . . . .   4
+   7.  IANA Section  . . . . . . . . . . . . . . . . . . . . . . . .   4
+   8.  Contributors  . . . . . . . . . . . . . . . . . . . . . . . .   5
+   9.  Acknowledgement . . . . . . . . . . . . . . . . . . . . . . .   5
+   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .   5
+     10.1.  Normative References . . . . . . . . . . . . . . . . . .   5
+     10.2.  Informative References . . . . . . . . . . . . . . . . .   5
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .   5
 
 1.  Introduction
 
-2.  Signalling
+   BIER technology [RFC8296] in its standard form may suffer from a
+   degradation towards ingress replication in a scenario where the total
+   number of involved BFRs is very large but most packets address
+   varying combination of relatively few receivers spread across
+   different sets.
 
-   The only signalling necessary is a Sub-TLV of the IS-IS Router
-   Capability TLV-242 that is defined in [RFC7981] with the following
-   format.  The Sub-TLV MUST be advertised by a node that is actively
-   running any prunner except zero-prunner and the absence of this Sub-
-   TLV signifies a node being a 'zero-prunner'.
+   More explicitly, BIER carries in its standard form a bitmask of
+   successive BFR receivers represented as bits in a set and thus on
+   large numbers of involved BFRs and few receivers w/o customized
+   allocation of BFR IDs or application awareness of the address
+   locality each receiver on a packet may be found in a different set in
+   most extreme cases.  Obviously, when receivers are in different sets,
+   multiple packets must be sent, one per involved set.  Such a scenario
+   can become common in large distributed computation environments based
+   on consensus building algorithms (or building closures by successive
+   folding of results), e.g. multi-CPU HPC or data centers and RAID
+   storage where storing data while addressing large number of always
+   changing stripes can lead to this kind of anomaly.
 
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |     Type      |     Length    |        Algorithm              |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+
+
+Przygienda, et al.       Expires 29 October 2024                [Page 2]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
+
+2.  Unmasked BIER
+
+   To deal with the problem of small number of receivers spread across
+   many sets we introduce into BIER a special interpretation of the
+   bitmask field called unmasked BIER or U-BIER for brevity's sake.
+   U-BIER bitmask is interpreted as sequence of BFR-IDs that can belong
+   to different sets and be interspersed with "holes" consisting of
+   illegal BFR-IDs to increase hardware processing efficiency.
+
+   Support for processing of unmasked BIER is indicated by signalling
+   special label or its equivalent analogous to BIER Encapsulation
+   signalling.  Based on this info the upstream node can decide on a
+   hop-by-hop basis whether it compresses the same BIER frames it
+   received for different sets (how the recognition of same frames is
+   performed is outside the scope of this document) into a single U-BIER
+   frame or propagates a U-BIER frame with according changes, i.e. only
+   providing the BFR-IDs for which the receiver is responsible.  The
+   removal of BFR IDs from the packet before forwarding it is completely
+   analogous to the normal bitmask processing in a sense but here
+   spanning possibly many sets in the lookup engine.  In case the
+   downstream receiver does not support U-BIER the frame needs to be
+   replicated into according standard BIER frames with usual bitmask
+   interpretation.
+
+3.  U-BIER Interpretation of the bitmask field
+
+   The bitmask field MUST be interpreted in U-BIER mode as sequence of
+   BFR-IDs (as an example, within 256 bits maximum 16 receivers can be
+   encoded) whereas illegal BFR-IDs are allowed in any position and MUST
+   be ignored.  Duplicates are also allowed and MUST be treated as a
+   single occurrence.  No guarantees are provided in terms of sorting of
+   the BFR-IDs in U-BIER.
+
+4.  Signalling for MPLS in ISIS via U-Mode BIER MPLS Encapsulation Sub-
+    sub-TLV
+
+   The signalling follows the BIER MPLS Encapsulation Sub-sub-TLV, i.e.
+   it is <MT,SD,BML> specific but obviously does not include the concept
+   of a set.
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Type       |   Length      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   Reserved    |BS Len |                    Label              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | ...
+
+
+
+Przygienda, et al.       Expires 29 October 2024                [Page 3]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
 
       Type: TBD1
 
-      Length: 2
+      Length: 4 * of U-Mode BitString Length specific labels.
 
-      Algorithm: a numeric identifier in the range 0 .. 2^16-1 that
-      identifies the algorithm used to calculate CDS (flooding topology)
-      of the component from the IGP Flooding Prunner Registry as
-      assigned per Section 4.
+      Reserved: MUST be 0 on send and ignored on reception.
 
-3.  Security Considerations
+      Label: Frames received on this label interpret the BitMask as
+      U-BIER.
 
+   In case multiple values are advertised for same bitstring length, the
+   sub-sub-TLV MUST be ignored.  In case same label value is advertised
+   for different bitstring lengths, the sub-sub-TLV MUST be ignored.
 
-4.  IANA Section
+   Label values MUST NOT match any of the reserved values defined in
+   [RFC3032].
 
-   IANA is requested to set up a registry called "IGP Flooding Prunner
-   Type" under the existing "Interior Gateway Protocol (IGP) Parameters"
-   IANA registry.
+5.  Further Considerations
 
-   Values in this registry come from the range 0 .. 2^16-1.
+   U-BIER can be deployed within existing BIER node by node, either as
+   addition or the only mode supported.  Observe that in an environment
+   where only some nodes support U-BIER those may have to disaggregate
+   U-BIER into normal BIER and hence fall back to average replication.
+   In a network where some nodes support only U-BIER normal BIER nodes
+   may consider them not supporting BIER at all or may perform
+   translation from normal BIER into U-BIER frames, however, it must be
+   expected that they will use a single frame and basically send U-BIER
+   with the BFR IDs of a single set only, not rendering any gains unless
+   a mechanism is in place the same frame is detected sent on multiple
+   sets and coalesced into a single U-BIER frame.  This can be achieved
+   by many mechanisms out the scope of this draft, amongst them a shim
+   after the BIER encapsulation [I-D.zzhang-bier-extension-headers] in
+   way similar to inband telemetry or fragmentation support.
 
+   Mixing U-BIER and normal BIER within a subdomain can lead to
+   difficulties of decoding the according packets in the middle in terms
+   of destinations targeted if the involved parties in the middle do not
+   possess the correct binding information.  An obvious method to deal
+   with this problem is to deploy U-BIER specifically in its own sub-
+   domain where the interpretation of the bitmask is unambiguous.
 
-
-
-Przygienda               Expires 6 October 2024                 [Page 2]
-
-Internet-Draft             Unmasked BIER Mode                 April 2024
-
-
-   The following values are defined:
-
-      0-255: Reserved with values aligned with algorithm numbers in
-      _draft-dynamic-flooding_.
-
-      256: MANET Based Algorithm described in this document.
-
-      257 .. 32767: Standardized distributed algorithms assigned in the
-      registry.
-
-      32767 ..  65534: Private algorithms.  Individual values are to be
-      assigned according to the "Private Use" policy defined in
-      [RFC8126].
-
-      65535: Reserved
-
-5.  Contributors
+6.  Security Considerations
 
    TBD
 
-6.  References
+7.  IANA Section
 
-6.1.  Normative References
-
-   [RFC7981]  Ginsberg, L., Previdi, S., and M. Chen, "IS-IS Extensions
-              for Advertising Router Information", RFC 7981,
-              DOI 10.17487/RFC7981, October 2016,
-              <https://www.rfc-editor.org/info/rfc7981>.
-
-6.2.  Informative References
-
-   [I-D.ietf-isis-segment-routing-extensions]
-              Previdi, S., Ginsberg, L., Filsfils, C., Bashandy, A.,
-              Gredler, H., and B. Decraene, "IS-IS Extensions for
-              Segment Routing", Work in Progress, Internet-Draft, draft-
-              ietf-isis-segment-routing-extensions-25, 19 May 2019,
-              <https://datatracker.ietf.org/doc/html/draft-ietf-isis-
-              segment-routing-extensions-25>.
-
-   [RFC5304]  Li, T. and R. Atkinson, "IS-IS Cryptographic
-              Authentication", RFC 5304, DOI 10.17487/RFC5304, October
-              2008, <https://www.rfc-editor.org/info/rfc5304>.
-
-   [RFC5449]  Baccelli, E., Jacquet, P., Nguyen, D., and T. Clausen,
-              "OSPF Multipoint Relay (MPR) Extension for Ad Hoc
-              Networks", RFC 5449, DOI 10.17487/RFC5449, February 2009,
-              <https://www.rfc-editor.org/info/rfc5449>.
+   TBD
 
 
 
 
-Przygienda               Expires 6 October 2024                 [Page 3]
+Przygienda, et al.       Expires 29 October 2024                [Page 4]
 
 Internet-Draft             Unmasked BIER Mode                 April 2024
 
 
-   [RFC5614]  Ogier, R. and P. Spagnolo, "Mobile Ad Hoc Network (MANET)
-              Extension of OSPF Using Connected Dominating Set (CDS)
-              Flooding", RFC 5614, DOI 10.17487/RFC5614, August 2009,
-              <https://www.rfc-editor.org/info/rfc5614>.
+8.  Contributors
 
-   [RFC8126]  Cotton, M., Leiba, B., and T. Narten, "Guidelines for
-              Writing an IANA Considerations Section in RFCs", BCP 26,
-              RFC 8126, DOI 10.17487/RFC8126, June 2017,
-              <https://www.rfc-editor.org/info/rfc8126>.
+   TBD
 
-Author's Address
+9.  Acknowledgement
+
+   Michael Menth and Toerless Eckert mentioned the problem and
+   approaches to address it in open forums for the first time.
+
+10.  References
+
+10.1.  Normative References
+
+   [RFC3032]  Rosen, E., Tappan, D., Fedorkow, G., Rekhter, Y.,
+              Farinacci, D., Li, T., and A. Conta, "MPLS Label Stack
+              Encoding", RFC 3032, DOI 10.17487/RFC3032, January 2001,
+              <https://www.rfc-editor.org/info/rfc3032>.
+
+   [RFC8296]  Wijnands, IJ., Ed., Rosen, E., Ed., Dolganow, A.,
+              Tantsura, J., Aldrin, S., and I. Meilik, "Encapsulation
+              for Bit Index Explicit Replication (BIER) in MPLS and Non-
+              MPLS Networks", RFC 8296, DOI 10.17487/RFC8296, January
+              2018, <https://www.rfc-editor.org/info/rfc8296>.
+
+10.2.  Informative References
+
+   [I-D.zzhang-bier-extension-headers]
+              Zhang, Z. J., Min, X., Liu, Y., and H. Bidgoli, "BIER
+              Extension Headers", Work in Progress, Internet-Draft,
+              draft-zzhang-bier-extension-headers-03, 25 February 2024,
+              <https://datatracker.ietf.org/doc/html/draft-zzhang-bier-
+              extension-headers-03>.
+
+Authors' Addresses
 
    Tony Przygienda
    Juniper Networks
    Email: prz@juniper.net
 
 
+   Jeffrey (Zhaohui) Zhang
+   Juniper Networks
+   Email: zzhang@juniper.net
+
+
+   Hooman Bigdoli
+   Nokia
+   Email: hooman.bigdoli@nokia.com
+
+
+
+Przygienda, et al.       Expires 29 October 2024                [Page 5]
+
+Internet-Draft             Unmasked BIER Mode                 April 2024
+
+
+   IJsbrand Wijnands
+   Individual
+   Email: ice@braindump.be
 
 
 
@@ -221,4 +319,18 @@ Author's Address
 
 
 
-Przygienda               Expires 6 October 2024                 [Page 4]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Przygienda, et al.       Expires 29 October 2024                [Page 6]
