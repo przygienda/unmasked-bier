@@ -5,15 +5,15 @@
 Network Working Group                                      T. Przygienda
 Internet-Draft                                                  J. Zhang
 Intended status: Experimental                           Juniper Networks
-Expires: 29 October 2024                                      H. Bidgoli
+Expires: 27 August 2025                                       H. Bidgoli
                                                                    Nokia
                                                              I. Wijnands
                                                               Individual
-                                                           27 April 2024
+                                                        23 February 2025
 
 
                            Unmasked BIER Mode
-                   draft-zzhang-bier-unmasked-bier-00
+                   draft-zzhang-bier-unmasked-bier-01
 
 Abstract
 
@@ -37,11 +37,11 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 29 October 2024.
+   This Internet-Draft will expire on 27 August 2025.
 
 Copyright Notice
 
-   Copyright (c) 2024 IETF Trust and the persons identified as the
+   Copyright (c) 2025 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 1]
+Przygienda, et al.       Expires 27 August 2025                 [Page 1]
 
-Internet-Draft             Unmasked BIER Mode                 April 2024
+Internet-Draft             Unmasked BIER Mode              February 2025
 
 
    This document is subject to BCP 78 and the IETF Trust's Legal
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 2]
+Przygienda, et al.       Expires 27 August 2025                 [Page 2]
 
-Internet-Draft             Unmasked BIER Mode                 April 2024
+Internet-Draft             Unmasked BIER Mode              February 2025
 
 
 2.  Unmasked BIER
@@ -165,9 +165,9 @@ Internet-Draft             Unmasked BIER Mode                 April 2024
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 3]
+Przygienda, et al.       Expires 27 August 2025                 [Page 3]
 
-Internet-Draft             Unmasked BIER Mode                 April 2024
+Internet-Draft             Unmasked BIER Mode              February 2025
 
 
       Type: TBD1
@@ -221,9 +221,9 @@ Internet-Draft             Unmasked BIER Mode                 April 2024
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 4]
+Przygienda, et al.       Expires 27 August 2025                 [Page 4]
 
-Internet-Draft             Unmasked BIER Mode                 April 2024
+Internet-Draft             Unmasked BIER Mode              February 2025
 
 
 8.  Contributors
@@ -277,9 +277,9 @@ Authors' Addresses
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 5]
+Przygienda, et al.       Expires 27 August 2025                 [Page 5]
 
-Internet-Draft             Unmasked BIER Mode                 April 2024
+Internet-Draft             Unmasked BIER Mode              February 2025
 
 
    IJsbrand Wijnands
@@ -333,4 +333,4 @@ Internet-Draft             Unmasked BIER Mode                 April 2024
 
 
 
-Przygienda, et al.       Expires 29 October 2024                [Page 6]
+Przygienda, et al.       Expires 27 August 2025                 [Page 6]
